@@ -24,10 +24,13 @@ def scrape_jobs(
     location: str | None = None,
     country: str = "india",
     results_wanted: int = 100,
+    proxies: list[str] | None = None,
+    site_name: list[str] | None = None,
 ) -> list[dict]:
     """Return a list of normalized job dicts, or [] if unavailable.
 
-    Each dict: {title, company, location, url, posted_date, source}.
+    Each dict: {title, company, location, url, posted_date, source,
+    description, company_url}. Only public job boards are queried.
     """
     if not is_available():
         logger.info("JobSpy not installed; skipping live job scrape")
@@ -35,26 +38,44 @@ def scrape_jobs(
     try:
         from jobspy import scrape_jobs as _scrape
 
-        df = _scrape(
-            site_name=["indeed", "linkedin"],
+        kwargs = dict(
+            site_name=site_name or ["indeed", "linkedin"],
             search_term=search_term,
             location=location or "",
             results_wanted=results_wanted,
             country_indeed=country,
         )
+        if proxies:
+            kwargs["proxies"] = proxies
+
+        df = _scrape(**kwargs)
+        if df is None or len(df) == 0:
+            return []
         records = []
         for _, row in df.iterrows():
             records.append(
                 {
-                    "title": str(row.get("title", "")),
-                    "company": str(row.get("company", "")),
-                    "location": str(row.get("location", "")),
-                    "url": str(row.get("job_url", "")),
-                    "posted_date": str(row.get("date_posted", "")),
-                    "source": str(row.get("site", "jobspy")),
+                    "title": _s(row.get("title")),
+                    "company": _s(row.get("company")),
+                    "location": _s(row.get("location")),
+                    "url": _s(row.get("job_url")),
+                    "posted_date": _s(row.get("date_posted")),
+                    "source": _s(row.get("site")) or "jobspy",
+                    "description": _s(row.get("description")),
+                    "company_url": _s(row.get("company_url")),
                 }
             )
         return records
     except Exception as exc:  # noqa: BLE001
         logger.warning("JobSpy scrape failed: %s", exc)
         return []
+
+
+def _s(value) -> str:
+    """Coerce a possibly-NaN/None pandas cell to a clean string."""
+    if value is None:
+        return ""
+    text = str(value)
+    if text.lower() in ("nan", "none", "nat"):
+        return ""
+    return text.strip()

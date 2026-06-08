@@ -11,7 +11,7 @@ from app.config import settings
 from app.core.scoring import SignalInput, score_lead
 from app.database import SessionLocal
 from app.models import Campaign, CompanyLead, IntegrationSetting, JobPosting, ResearchRun
-from app.services import crm
+from app.services import crm, live_research
 from app.services.classify import classify_title
 from app.services.email_verify import verify_email
 from app.services.openai_service import generate_outreach
@@ -47,7 +47,13 @@ def _effective_settings(user_settings: IntegrationSetting | None) -> dict:
         "reacher_api_url": pick("reacher_api_url", _clean(settings.reacher_api_url)),
         "zerobounce_api_key": pick("zerobounce_api_key", _clean(settings.zerobounce_api_key)),
         "hunter_api_key": pick("hunter_api_key", _clean(settings.hunter_api_key)),
+        "apollo_api_key": pick("apollo_api_key", _clean(settings.apollo_api_key)),
         "n8n_webhook_url": pick("n8n_webhook_url", _clean(settings.n8n_webhook_url)),
+        # JobSpy settings
+        "jobspy_enabled": pick("jobspy_enabled", settings.jobspy_enabled),
+        "jobspy_country": settings.jobspy_default_country,
+        "jobspy_results_limit": settings.jobspy_default_results_limit,
+        "jobspy_proxies": _clean(settings.jobspy_proxies),
     }
 
 
@@ -82,8 +88,20 @@ def run_research(run_id: int) -> None:
         )
         eff = _effective_settings(user_settings)
 
-        log_lines.append("Building company candidates from public job signals (sample fallback).")
-        companies = generate_companies(campaign, count=settings.jobspy_default_results_limit and 10 or 10)
+        # Try live job data first, fall back to sample dataset.
+        companies: list[dict] = []
+        if live_research.is_enabled(eff):
+            log_lines.append("Scraping live job postings via JobSpy...")
+            companies = live_research.build_companies(campaign, eff, limit=10)
+            if companies:
+                log_lines.append(f"JobSpy returned {len(companies)} companies with hiring signals.")
+            else:
+                log_lines.append("JobSpy returned no usable data; falling back to sample dataset.")
+
+        if not companies:
+            log_lines.append("Using deterministic sample dataset.")
+            companies = generate_companies(campaign, count=10)
+
         run.companies_found = len(companies)
 
         leads_created = 0
@@ -180,7 +198,7 @@ def run_research(run_id: int) -> None:
                         company_lead_id=lead.id,
                         title=job["title"],
                         location=job.get("location"),
-                        url=comp["careers_url"],
+                        url=job.get("url") or comp["careers_url"],
                         posted_date=job.get("posted_date"),
                         source=comp.get("source", "sample"),
                         is_recruiter_role=flags["is_recruiter_role"],

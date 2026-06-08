@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     jobspy_enabled: bool = True
     jobspy_default_country: str = "india"
     jobspy_default_results_limit: int = 100
+    jobspy_proxies: str = ""
 
     # Email verification
     reacher_api_url: str = "http://reacher:8080"

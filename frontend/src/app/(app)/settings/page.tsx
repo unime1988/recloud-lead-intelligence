@@ -43,6 +43,13 @@ const SECTIONS: { title: string; description: string; fields: KeyField[] }[] = [
     ],
   },
   {
+    title: "Contact enrichment (decision-makers)",
+    description: "Find real decision-makers via Apollo.io or Hunter.io. Enrichment runs automatically when a key is provided.",
+    fields: [
+      { name: "apollo_api_key", label: "Apollo API key", placeholder: "…", secret: true, setFlag: "apollo_api_key_set" },
+    ],
+  },
+  {
     title: "CRM & webhook export",
     description: "Optional CRM sync and n8n/webhook export. Disabled by default.",
     fields: [

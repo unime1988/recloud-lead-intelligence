@@ -13,3 +13,4 @@ email-validator==2.2.0
 redis==5.2.1
 rq==2.1.0
 httpx==0.28.1
+python-jobspy==1.1.75
