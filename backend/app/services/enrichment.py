@@ -15,9 +15,30 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT = 30.0
 
+# Job-board / aggregator hosts that are never a company's real domain. When the
+# only "domain" we have is one of these (common with live JobSpy data, whose
+# company_url points at the board's company page), we resolve contacts by
+# company name instead.
+_JOB_BOARD_DOMAINS = (
+    "indeed.com",
+    "linkedin.com",
+    "glassdoor.com",
+    "ziprecruiter.com",
+    "naukri.com",
+    "monster.com",
+    "simplyhired.com",
+    "google.com",
+    "bing.com",
+)
+
 
 def is_configured(*, apollo_key: str | None = None, hunter_key: str | None = None) -> bool:
     return bool(_clean(apollo_key) or _clean(hunter_key))
+
+
+def _is_job_board(domain: str) -> bool:
+    d = (domain or "").lower()
+    return any(d == b or d.endswith("." + b) for b in _JOB_BOARD_DOMAINS)
 
 
 def domain_from_url(url: str) -> str:
@@ -46,14 +67,19 @@ def find_decision_maker(
     (search + enrichment). Both gracefully return None on failure.
     """
     dm = None
-    # Hunter first — domain-search returns emails directly.
-    if _clean(hunter_key) and domain:
-        dm = _hunter_domain_search(domain, titles, hunter_key)  # type: ignore[arg-type]
+    # A job-board host (indeed.com, linkedin.com, ...) is not the company's real
+    # domain, so don't use it for a domain lookup.
+    usable_domain = domain if (domain and not _is_job_board(domain)) else ""
+
+    # Hunter first — domain-search returns emails directly, and also accepts a
+    # company name (which it resolves to the real domain) when we lack one.
+    if _clean(hunter_key) and (usable_domain or company_name):
+        dm = _hunter_domain_search(usable_domain, company_name, titles, hunter_key)  # type: ignore[arg-type]
         if dm:
             return dm
 
-    if _clean(apollo_key) and domain:
-        dm = _apollo_search(domain, titles, apollo_key)  # type: ignore[arg-type]
+    if _clean(apollo_key) and usable_domain:
+        dm = _apollo_search(usable_domain, titles, apollo_key)  # type: ignore[arg-type]
         if dm:
             return dm
 
@@ -64,15 +90,26 @@ def find_decision_maker(
 # Hunter.io
 # ---------------------------------------------------------------------------
 
-def _hunter_domain_search(domain: str, titles: list[str], api_key: str) -> dict | None:
-    """GET /v2/domain-search — returns emails with name + position."""
+def _hunter_domain_search(
+    domain: str, company_name: str, titles: list[str], api_key: str
+) -> dict | None:
+    """GET /v2/domain-search — returns emails with name + position.
+
+    Queries by ``domain`` when we have a real one, otherwise by ``company``
+    name (Hunter resolves it to the company's domain).
+    """
     try:
         params: dict = {
-            "domain": domain,
             "api_key": api_key,
             "type": "personal",
             "limit": 10,
         }
+        if domain:
+            params["domain"] = domain
+        elif company_name:
+            params["company"] = company_name
+        else:
+            return None
         resp = httpx.get(
             "https://api.hunter.io/v2/domain-search",
             params=params,
@@ -96,7 +133,9 @@ def _hunter_domain_search(domain: str, titles: list[str], api_key: str) -> dict 
             "email": best.get("value") or None,
         }
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Hunter domain-search failed for %s: %s", domain, exc)
+        logger.warning(
+            "Hunter domain-search failed for %s: %s", domain or company_name, exc
+        )
         return None
 
 

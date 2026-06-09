@@ -260,8 +260,8 @@ def _enrich_decision_makers(companies: list[dict], campaign, eff: dict) -> None:
 
     for comp in companies:
         domain = comp.get("_domain") or enrichment.domain_from_url(comp.get("website", ""))
-        if not domain:
-            continue
+        # Even with no usable domain we can still resolve contacts by company
+        # name via Hunter, so always attempt enrichment.
         try:
             dm = enrichment.find_decision_maker(
                 comp["company_name"],
