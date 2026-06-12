@@ -12,7 +12,7 @@ from app.core.scoring import SignalInput, score_lead
 from app.database import SessionLocal
 from app.models import Campaign, CompanyLead, IntegrationSetting, JobPosting, ResearchRun
 from app.services import crm, live_research
-from app.services.classify import classify_title
+from app.services.classify import classify_company_type, classify_title
 from app.services.email_verify import verify_email
 from app.services.openai_service import generate_outreach
 from app.services.sample_data import generate_companies
@@ -107,6 +107,8 @@ def run_research(run_id: int) -> None:
         leads_created = 0
         for comp in companies:
             dm = comp.get("decision_maker")
+            ct = classify_company_type(comp["company_name"])
+            is_agency = ct["is_recruitment_agency"] or ct["is_consulting_agency"] or ct["is_sourcing_agency"]
             signal = SignalInput(
                 total_open_jobs=comp["total_open_jobs"],
                 recruiter_jobs_open=comp["recruiter_jobs_open"],
@@ -114,7 +116,9 @@ def run_research(run_id: int) -> None:
                 high_volume_role_jobs=comp["high_volume_role_jobs"],
                 has_urgent_hiring=comp["has_urgent_hiring"],
                 has_multiple_locations=comp["has_multiple_locations"],
+                has_stale_jobs=comp["has_stale_jobs"],
                 decision_maker_found=dm is not None,
+                is_agency=is_agency,
             )
             result = score_lead(signal)
 

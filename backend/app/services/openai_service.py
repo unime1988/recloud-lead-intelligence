@@ -26,8 +26,14 @@ AI_FIELDS = [
 def _build_prompt(lead: dict) -> str:
     signals = ", ".join(s.get("label", "") for s in lead.get("signals", [])) or "general hiring activity"
     return (
-        "You are an SDR assistant for a recruitment automation product. "
-        "Given the company hiring signals below, produce concise, non-pushy outreach DRAFTS. "
+        "You are an SDR assistant for Rachel AI — an AI-powered interview platform "
+        "that conducts technical and non-technical interviews autonomously. "
+        "Rachel AI can process 1,000 interviews simultaneously, works 24/7/365, "
+        "and helps companies scale hiring 10x without adding recruiters.\n\n"
+        "Given the company hiring signals below, produce concise, non-pushy outreach DRAFTS "
+        "that pitch Rachel AI as the solution to their interview bottleneck. "
+        "Focus on: reducing time-to-hire, eliminating interviewer bandwidth constraints, "
+        "consistent candidate assessments, and scaling without extra headcount.\n\n"
         "Return ONLY a JSON object with keys: pain_hypothesis, bandwidth_pressure, buyer_persona, "
         "outreach_angle, cold_email, linkedin_message, whatsapp_message.\n\n"
         f"Company: {lead.get('company_name')}\n"
@@ -56,34 +62,39 @@ def _template_output(lead: dict) -> dict:
     pain = (
         f"{company} appears to be scaling hiring with {open_jobs} open roles"
         + (f" and {recruiter_jobs} recruiter/TA openings" if recruiter_jobs else "")
-        + ". This volume usually stretches the existing talent team."
+        + ". At this volume, interview scheduling and candidate screening become major bottlenecks."
     )
     bandwidth = (
-        f"With {recruiter_jobs or 'limited'} recruiters being hired alongside live reqs, "
-        f"the TA function at {company} is likely under bandwidth pressure and may be slow to fill roles."
+        f"With {open_jobs} open positions, {company}'s interview pipeline is likely strained. "
+        f"Each role requires multiple interview rounds — that's thousands of interviews "
+        f"competing for limited interviewer time."
     )
     persona = f"Best buyer persona: {dm_title} or Head of Talent Acquisition at {company}."
     angle = (
-        f"Lead with how recruitment automation reduces time-to-fill for the {open_jobs} open roles "
-        f"and frees the TA team from repetitive sourcing."
+        f"Rachel AI can handle 1,000 interviews simultaneously, 24/7 — letting {company} "
+        f"screen candidates for all {open_jobs} roles without adding headcount."
     )
     cold_email = (
-        f"Subject: Helping {company} fill {open_jobs} open roles faster\n\n"
+        f"Subject: {company} — automate interviews for {open_jobs} open roles\n\n"
         f"Hi {dm},\n\n"
         f"I noticed {company} is hiring across {open_jobs} roles"
         + (f" in {region}" if region else "")
-        + ". Teams scaling this fast often hit recruiter bandwidth limits.\n\n"
-        f"We help talent teams automate sourcing and screening so you fill roles faster without adding headcount. "
-        f"Worth a quick 15-min chat next week?\n\n"
+        + ". At this scale, interview scheduling and screening become a real bottleneck.\n\n"
+        f"Rachel AI conducts technical and non-technical interviews autonomously — "
+        f"1,000 interviews at a time, 24/7. Companies using Rachel have cut time-to-hire by 70% "
+        f"and scaled hiring 10x without adding recruiters.\n\n"
+        f"Would a quick 15-min demo make sense this week?\n\n"
         f"Best,\n[Your name]"
     )
     linkedin = (
-        f"Hi {dm}, saw {company} is hiring across {open_jobs} roles. We help TA teams automate the repetitive "
-        f"sourcing/screening work so recruiters focus on closing. Open to a quick chat?"
+        f"Hi {dm}, saw {company} is hiring across {open_jobs} roles. "
+        f"Rachel AI automates interviews (technical + non-technical) — 1,000 at a time, 24/7. "
+        f"Companies using it have scaled hiring 10x. Worth a quick chat?"
     )
     whatsapp = (
         f"Hi {dm}, noticed {company} is scaling hiring ({open_jobs} open roles). "
-        f"We cut time-to-fill with recruitment automation. Could I share a 2-min overview?"
+        f"Rachel AI handles interviews 24/7 — 1,000 simultaneously. "
+        f"Could I share a 2-min overview?"
     )
     return {
         "pain_hypothesis": pain,

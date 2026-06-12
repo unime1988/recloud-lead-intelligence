@@ -12,7 +12,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 from app.services import enrichment, jobspy_service
-from app.services.classify import URGENT_KEYWORDS, classify_title
+from app.services.classify import URGENT_KEYWORDS, classify_title, matches_company_type_filter
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +45,21 @@ def build_companies(
         "high_volume_role_keywords": campaign.high_volume_role_keywords or [],
     }
 
+    company_type = getattr(campaign, "company_type", "all") or "all"
+
     companies: list[dict] = []
     for company_name, jobs in grouped.items():
+        # Apply company-type filter: skip companies that don't match.
+        display_name = jobs[0].get("company", company_name).strip()
+        if not matches_company_type_filter(display_name, company_type):
+            continue
         comp = _compute_signals(company_name, jobs, campaign, campaign_kw, eff)
         companies.append(comp)
 
     companies.sort(key=lambda c: _rough_score(c), reverse=True)
-    companies = companies[:limit]
+    # Return more leads when filtering by agency type (wider funnel).
+    effective_limit = limit * 2 if company_type != "all" else limit
+    companies = companies[:effective_limit]
 
     # Enrich decision-makers for top companies (rate-conscious: limit calls).
     _enrich_decision_makers(companies, campaign, eff)
@@ -93,8 +101,38 @@ def _scrape_jobs_for_campaign(campaign, eff: dict) -> list[dict]:
     return all_jobs
 
 
+# Extra search terms injected when an agency filter is active.
+_AGENCY_SEARCH_TERMS: dict[str, list[str]] = {
+    "recruitment": [
+        "recruitment agency hiring",
+        "staffing company jobs",
+        "placement agency",
+    ],
+    "consulting": [
+        "IT consulting company hiring",
+        "consulting firm jobs",
+        "technology services hiring",
+    ],
+    "sourcing": [
+        "sourcing agency hiring",
+        "executive search firm",
+        "talent sourcing jobs",
+    ],
+    "recruitment_and_consulting": [
+        "recruitment agency hiring",
+        "staffing company jobs",
+        "IT consulting company hiring",
+        "consulting firm jobs",
+    ],
+}
+
+
 def _build_search_terms(campaign) -> list[str]:
-    """Derive 1–3 search terms from campaign configuration."""
+    """Derive search terms from campaign configuration.
+
+    When a company-type filter is active, extra agency-specific terms are
+    appended so the scraper returns more relevant results.
+    """
     terms: list[str] = []
     if campaign.job_keywords:
         terms.extend(campaign.job_keywords[:3])
@@ -102,6 +140,13 @@ def _build_search_terms(campaign) -> list[str]:
         terms.append(f"{campaign.industry} jobs")
     if not terms:
         terms.append("hiring")
+
+    company_type = getattr(campaign, "company_type", "all") or "all"
+    extra = _AGENCY_SEARCH_TERMS.get(company_type, [])
+    for t in extra:
+        if t not in terms:
+            terms.append(t)
+
     return terms
 
 

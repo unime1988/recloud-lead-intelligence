@@ -30,6 +30,10 @@ class Token(BaseModel):
 
 
 # ---------- Campaigns ----------
+# Valid company_type values for campaign filtering.
+COMPANY_TYPES = ["all", "recruitment", "consulting", "sourcing", "recruitment_and_consulting"]
+
+
 class CampaignBase(BaseModel):
     name: str
     industry: str | None = None
@@ -39,6 +43,7 @@ class CampaignBase(BaseModel):
     recruiter_keywords: list[str] = []
     high_volume_role_keywords: list[str] = []
     target_decision_maker_titles: list[str] = []
+    company_type: str = "all"
 
 
 class CampaignCreate(CampaignBase):
@@ -54,6 +59,7 @@ class CampaignUpdate(BaseModel):
     recruiter_keywords: list[str] | None = None
     high_volume_role_keywords: list[str] | None = None
     target_decision_maker_titles: list[str] | None = None
+    company_type: str | None = None
     status: str | None = None
 
 

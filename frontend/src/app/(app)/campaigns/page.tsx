@@ -94,6 +94,9 @@ export default function CampaignsPage() {
                   <p className="text-sm text-muted-foreground">
                     {[c.industry, c.region].filter(Boolean).join(" · ") || "No targeting set"} ·{" "}
                     {c.leads_count} leads · min {c.min_employee_count} employees
+                    {c.company_type && c.company_type !== "all" && (
+                      <> · <span className="font-medium text-primary">{c.company_type.replace(/_/g, " ")}</span></>
+                    )}
                   </p>
                   <div className="flex flex-wrap gap-1 pt-1">
                     {c.job_keywords.slice(0, 4).map((k) => (
