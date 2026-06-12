@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 function parseList(value: string): string[] {
@@ -28,6 +29,7 @@ export default function NewCampaignPage() {
     industry: "",
     region: "",
     min_employee_count: 0,
+    company_type: "all",
     job_keywords: "software engineer, support, sales",
     recruiter_keywords: "recruiter, talent acquisition",
     high_volume_role_keywords: "sales, support, bpo, operations",
@@ -49,6 +51,7 @@ export default function NewCampaignPage() {
           industry: form.industry || null,
           region: form.region || null,
           min_employee_count: Number(form.min_employee_count) || 0,
+          company_type: form.company_type,
           job_keywords: parseList(form.job_keywords),
           recruiter_keywords: parseList(form.recruiter_keywords),
           high_volume_role_keywords: parseList(form.high_volume_role_keywords),
@@ -88,7 +91,7 @@ export default function NewCampaignPage() {
               <Label htmlFor="name">Campaign name *</Label>
               <Input id="name" required value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="India BPO Hiring Surge" />
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="industry">Industry</Label>
                 <Input id="industry" value={form.industry} onChange={(e) => update("industry", e.target.value)} placeholder="BPO" />
@@ -96,6 +99,23 @@ export default function NewCampaignPage() {
               <div className="space-y-2">
                 <Label htmlFor="region">Region / country</Label>
                 <Input id="region" value={form.region} onChange={(e) => update("region", e.target.value)} placeholder="India" />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="company_type">Company type</Label>
+                <Select value={form.company_type} onValueChange={(v) => update("company_type", v)}>
+                  <SelectTrigger id="company_type">
+                    <SelectValue placeholder="All companies" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All companies</SelectItem>
+                    <SelectItem value="recruitment">Recruitment &amp; Staffing Agencies</SelectItem>
+                    <SelectItem value="consulting">Consulting &amp; IT Services</SelectItem>
+                    <SelectItem value="sourcing">Sourcing &amp; Search Firms</SelectItem>
+                    <SelectItem value="recruitment_and_consulting">Recruitment + Consulting</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="min_emp">Min employees</Label>

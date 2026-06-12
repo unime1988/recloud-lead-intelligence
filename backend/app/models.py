@@ -45,6 +45,7 @@ class Campaign(Base):
     recruiter_keywords: Mapped[list] = mapped_column(JSONB, default=list)
     high_volume_role_keywords: Mapped[list] = mapped_column(JSONB, default=list)
     target_decision_maker_titles: Mapped[list] = mapped_column(JSONB, default=list)
+    company_type: Mapped[str] = mapped_column(String(64), default="all", nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="draft", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

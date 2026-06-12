@@ -11,6 +11,7 @@ export interface Campaign {
   industry: string | null;
   region: string | null;
   min_employee_count: number;
+  company_type: string;
   job_keywords: string[];
   recruiter_keywords: string[];
   high_volume_role_keywords: string[];
