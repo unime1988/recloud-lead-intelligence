@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { toast } from "sonner";
 
 function parseList(value: string): string[] {
@@ -104,17 +104,12 @@ export default function NewCampaignPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="company_type">Company type</Label>
-                <Select value={form.company_type} onValueChange={(v) => update("company_type", v)}>
-                  <SelectTrigger id="company_type">
-                    <SelectValue placeholder="All companies" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All companies</SelectItem>
-                    <SelectItem value="recruitment">Recruitment &amp; Staffing Agencies</SelectItem>
-                    <SelectItem value="consulting">Consulting &amp; IT Services</SelectItem>
-                    <SelectItem value="sourcing">Sourcing &amp; Search Firms</SelectItem>
-                    <SelectItem value="recruitment_and_consulting">Recruitment + Consulting</SelectItem>
-                  </SelectContent>
+                <Select id="company_type" value={form.company_type} onChange={(e) => update("company_type", e.target.value)}>
+                  <option value="all">All companies</option>
+                  <option value="recruitment">Recruitment &amp; Staffing Agencies</option>
+                  <option value="consulting">Consulting &amp; IT Services</option>
+                  <option value="sourcing">Sourcing &amp; Search Firms</option>
+                  <option value="recruitment_and_consulting">Recruitment + Consulting</option>
                 </Select>
               </div>
               <div className="space-y-2">
