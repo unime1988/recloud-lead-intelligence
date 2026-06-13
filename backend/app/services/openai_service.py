@@ -100,7 +100,11 @@ def _build_prompt(lead: dict) -> str:
         #
         f"RACHEL LINK (include in email): {RACHEL_LINK}\n\n"
         #
-        f"CASE STUDY TO USE (pick the proof point from this):\n{case_study}\n\n"
+        f"CASE STUDY — YOU MUST INCLUDE THIS AS A SEPARATE PARAGRAPH IN THE EMAIL:\n"
+        f"{case_study}\n"
+        f"Include the specific numbers from this case study (e.g. '6-day → 24 hours', "
+        f"'28 hrs/week → 8 hrs/week', '3x placements', '70% faster', '55% lower cost'). "
+        f"Do NOT paraphrase vaguely — quote the exact metrics.\n\n"
         #
         # --- Cold-email skill methodology ---
         #
@@ -108,7 +112,7 @@ def _build_prompt(lead: dict) -> str:
         "- Write like a peer, not a vendor. Use contractions. If it sounds like \n"
         "  marketing copy, rewrite it. No jargon: no 'synergy', 'leverage', \n"
         "  'circle back', 'best-in-class', 'leading provider'.\n"
-        "- Every sentence must earn its place. Under 90 words for the email body.\n"
+        "- Keep total body under 120 words — the case study paragraph needs room.\n"
         "- Lead with THEIR world, not yours. 'You/your' dominates over 'I/we'.\n"
         "- Do NOT open with 'I hope this email finds you well', 'My name is X', \n"
         "  or 'I came across your profile'. Never use 'leverage' or 'synergy'.\n"
@@ -122,10 +126,12 @@ def _build_prompt(lead: dict) -> str:
         "- No product name in subject, no 'increase/boost/ROI', no prospect first name.\n"
         "- Examples: 'interview bandwidth', 'hiring bottleneck', 'screening capacity'.\n\n"
         #
-        "FRAMEWORK — use Observation → Problem → Proof → Ask (PAS variant):\n"
+        "FRAMEWORK — use Observation → Problem → Case Study → Ask:\n"
         "1. Observation: reference a specific hiring signal connected to interview pain.\n"
         "2. Problem: what this usually means — bottleneck, scheduling chaos, inconsistency.\n"
-        "3. Proof: one concrete result FROM the case study above. Be specific.\n"
+        "3. Case Study (SEPARATE PARAGRAPH): Start with a phrase like 'Here's what happened:' \n"
+        "   or 'A similar team tried this:' and then include the EXACT case study text above \n"
+        "   with its specific numbers. This paragraph MUST contain at least 2 metrics.\n"
         "4. Two CTAs:\n"
         "   a) Reply CTA: 'Just reply \"interested\" and I\'ll send details' or \n"
         "      'Reply \"hi\" and I\'ll share how' — keep it one word reply.\n"
@@ -192,16 +198,16 @@ def _template_output(lead: dict) -> dict:
         f"Ask: dual CTA — reply 'interested' or visit RACHEL link."
     )
 
-    # --- Cold email: PAS framework, peer voice, RACHEL by name, dual CTAs ---
+    # --- Cold email: PAS framework, peer voice, RACHEL by name, case study, dual CTAs ---
     cold_email = (
         f"subject_line: interview bandwidth\n\n"
         f"body: Hi {dm},\n\n"
         f"{company}'s got {open_jobs} roles open"
         + (f" and you're hiring more recruiters" if recruiter_jobs else "")
         + " — that usually means interviews are the bottleneck, not sourcing.\n\n"
-        f"A similar-sized team was stuck in the same loop. They plugged in RACHEL "
-        f"(an autonomous first-round engine) and went from 6-day shortlists to 24 hours "
-        f"— 70% less recruiter effort, same team, same budget.\n\n"
+        f"Here's what happened with a similar team: {case_study}\n\n"
+        f"The engine behind it is RACHEL — it runs structured first-round interviews "
+        f"autonomously and delivers decision-ready shortlists in 24 hours.\n\n"
         f"If that sounds relevant, just reply \"interested\" and I'll share how it'd "
         f"work for {company}.\n\n"
         f"Or take a quick look here: {RACHEL_LINK}\n\n"
