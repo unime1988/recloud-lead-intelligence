@@ -119,15 +119,17 @@ def _build_prompt(lead: dict) -> str:
 
     return (
         "You are an SDR assistant for RACHEL, an AI recruitment automation product. "
-        "Given the company hiring signals below, produce concise, non-pushy outreach DRAFTS.\n\n"
+        "Given the company hiring signals below, produce outreach DRAFTS that feel like one recruiter talking to another.\n\n"
         "RULES:\n"
-        "1. Mention RACHEL by name and specific capability.\n"
-        f"2. Use this matched case study: {cs['label']} → {cs['headline']}\n"
-        "3. Include TWO CTAs in every message:\n"
+        "1. OPEN WITH THE BOTTLENECK: Call out the specific pain. Example: 'Hiring 3 recruiters while 40 reqs are live usually means the TA team is already stretched.'\n"
+        "2. EXPLAIN RACHEL IN 2 LINES: What it does and why it matters. Example: 'RACHEL is AI recruitment automation that sources, screens, and schedules candidates on autopilot. It fills roles faster without you adding headcount.'\n"
+        "3. USE THE FULL CASE STUDY (not just the headline): Tell the story with specific numbers.\n"
+        f"   Matched case study: {cs['label']} — {cs['headline']}. Detail: {cs['detail']}\n"
+        "4. BRIDGE PAIN → SOLUTION → PROOF: Make it obvious why RACHEL fits THIS company's exact situation.\n"
+        "5. Include TWO CTAs in every message:\n"
         f"   a) Reply with 'interested'\n"
         f"   b) Visit {_PRODUCT_URL}\n"
-        "4. Keep tone peer-to-peer: short sentences, no jargon, no buzzwords.\n"
-        "5. Make it feel like one recruiter talking to another.\n\n"
+        "6. Keep tone peer-to-peer: short sentences, no jargon, no buzzwords.\n\n"
         "Return ONLY a JSON object with keys: pain_hypothesis, bandwidth_pressure, buyer_persona, "
         "outreach_angle, cold_email, linkedin_message, whatsapp_message, case_study_used.\n\n"
         f"Company: {lead.get('company_name')}\n"
@@ -180,30 +182,45 @@ def _template_output(lead: dict) -> dict:
         f"Then ask if {company} wants the same outcome."
     )
 
+    bottleneck = (
+        f"Noticed {company} is juggling {open_jobs} open roles"
+        + (f" and actively hiring {recruiter_jobs} recruiters/TA to keep up" if recruiter_jobs else "")
+        + ". That usually means the existing team is already stretched thin — more reqs, same headcount, and burn-out risk rising."
+    )
+
+    rachel_desc = (
+        f"RACHEL is AI recruitment automation that sources, screens, and schedules candidates on autopilot. "
+        f"It fills roles faster without you adding headcount — exactly what a {case_label.lower()} team needs when reqs outpace recruiters."
+    )
+
     cold_email = (
-        f"Subject: {company} + {open_jobs} open roles — quick win?\n\n"
+        f"Subject: {company} + {open_jobs} open roles — are your recruiters underwater?\n\n"
         f"Hi {dm},\n\n"
-        f"Noticed {company} is hiring across {open_jobs} roles"
-        + (f" in {region}" if region else "")
-        + ".\n\n"
-        f"RACHEL is an AI recruitment tool built for {case_label.lower()}. "
-        f"One client saw: {case_headline}.\n\n"
-        f"Want to see if it fits {company}?\n\n"
-        f"Reply 'interested' and I'll send a 3-min overview.\n"
-        f"Or check it out directly: {_PRODUCT_URL}\n\n"
+        f"{bottleneck}\n\n"
+        f"{rachel_desc}\n\n"
+        f"Real result: {case_detail}\n\n"
+        f"Worth a 3-min look to see if it fits {company}?\n\n"
+        f"Reply 'interested' and I'll send a short overview.\n"
+        f"Or explore directly: {_PRODUCT_URL}\n\n"
         f"Cheers,\n[Your name]"
     )
 
     linkedin = (
-        f"Hi {dm}, saw {company} has {open_jobs} open reqs. "
-        f"RACHEL helped a similar {case_label.lower()} shop: {case_headline}. "
-        f"Want to see how? Reply 'interested' or grab a demo at {_PRODUCT_URL}"
+        f"Hi {dm}, saw {company} has {open_jobs} open reqs"
+        + (f" and is hiring {recruiter_jobs} recruiters" if recruiter_jobs else "")
+        + ". That's usually a sign the TA team is already at capacity. "
+        + f"RACHEL handles sourcing, screening, and scheduling on autopilot — so you fill roles without adding headcount. "
+        + f"A similar {case_label.lower()} team: {case_detail} "
+        + f"Worth a look? Reply 'interested' or check {_PRODUCT_URL}"
     )
 
     whatsapp = (
         f"Hi {dm} — noticed {company} is scaling ({open_jobs} open roles). "
-        f"RACHEL is AI recruitment automation. A {case_label.lower()} client hit: {case_headline}. "
-        f"Interested? Reply here. Details: {_PRODUCT_URL}"
+        f"Hiring more recruiters while reqs pile up usually means the team is already stretched. "
+        f"RACHEL is AI recruitment automation — sources, screens, schedules on autopilot. "
+        f"Fills roles faster without adding headcount. "
+        f"Similar {case_label.lower()} team: {case_detail} "
+        f"Interested? Reply here or see {_PRODUCT_URL}"
     )
 
     return {
@@ -240,8 +257,12 @@ def generate_outreach(lead: dict, api_key: str | None, base_url: str, model: str
                         "content": (
                             "You output only valid JSON. "
                             "You are an SDR for RACHEL (AI recruitment automation). "
-                            "Use peer tone: short, no jargon. Mention RACHEL by name. "
-                            "Include dual CTAs: reply 'interested' and landing page link."
+                            "Every outreach must: 1) Open with the company's specific bottleneck. "
+                            "2) Explain RACHEL in 2 lines: sources, screens, schedules on autopilot; fills roles faster without adding headcount. "
+                            "3) Use the FULL case study with specific numbers, not just the headline. "
+                            "4) Bridge pain → solution → proof so the fit is obvious. "
+                            "5) Include dual CTAs: reply 'interested' and landing page link. "
+                            "Tone: peer-to-peer, short sentences, no jargon."
                         ),
                     },
                     {"role": "user", "content": _build_prompt(lead)},
