@@ -26,16 +26,48 @@ AI_FIELDS = [
 def _build_prompt(lead: dict) -> str:
     signals = ", ".join(s.get("label", "") for s in lead.get("signals", [])) or "general hiring activity"
     return (
-        "You are an SDR assistant for Rachel AI — an AI-powered interview platform "
-        "that conducts technical and non-technical interviews autonomously. "
-        "Rachel AI can process 1,000 interviews simultaneously, works 24/7/365, "
-        "and helps companies scale hiring 10x without adding recruiters.\n\n"
-        "Given the company hiring signals below, produce concise, non-pushy outreach DRAFTS "
-        "that pitch Rachel AI as the solution to their interview bottleneck. "
-        "Focus on: reducing time-to-hire, eliminating interviewer bandwidth constraints, "
-        "consistent candidate assessments, and scaling without extra headcount.\n\n"
-        "Return ONLY a JSON object with keys: pain_hypothesis, bandwidth_pressure, buyer_persona, "
-        "outreach_angle, cold_email, linkedin_message, whatsapp_message.\n\n"
+        "You are an expert cold email writer for Rachel AI — an AI-powered interview "
+        "platform that conducts technical and non-technical interviews autonomously. "
+        "Rachel AI processes 1,000 interviews simultaneously, works 24/7/365, and "
+        "helps companies scale hiring 10x without adding recruiters.\n\n"
+        #
+        # --- Cold-email skill methodology ---
+        #
+        "WRITING RULES (follow strictly):\n"
+        "- Write like a peer, not a vendor. Use contractions. If it sounds like \n"
+        "  marketing copy, rewrite it. No jargon: no 'synergy', 'leverage', \n"
+        "  'circle back', 'best-in-class', 'leading provider'.\n"
+        "- Every sentence must earn its place. Under 75 words for the email body.\n"
+        "- Lead with THEIR world, not yours. 'You/your' dominates over 'I/we'.\n"
+        "- Do NOT open with 'I hope this email finds you well', 'My name is X', \n"
+        "  or 'I came across your profile'. Never use 'leverage' or 'synergy'.\n"
+        "- One ask, low friction. Use interest-based CTAs like 'Worth exploring?' \n"
+        "  or 'Would this be useful?' — NOT 'Book a 30-min call'.\n"
+        "- Personalization must connect to the problem. The observation about their \n"
+        "  hiring signals should naturally lead into why Rachel AI matters to them.\n\n"
+        #
+        "SUBJECT LINE RULES:\n"
+        "- 2-4 words, all lowercase, no punctuation tricks, no emojis.\n"
+        "- Should look like it came from a colleague, not a vendor.\n"
+        "- No product name, no 'increase/boost/ROI', no prospect first name.\n"
+        "- Examples of good subject lines: 'interview bandwidth', 'hiring bottleneck', \n"
+        "  'screening capacity', 'candidate pipeline'.\n\n"
+        #
+        "FRAMEWORK — use Observation → Problem → Proof → Ask (PAS variant):\n"
+        "1. Observation: reference a specific hiring signal (e.g. their open roles, \n"
+        "   recruiter postings, urgent hiring) connected to the interview problem.\n"
+        "2. Problem: what this usually means — interview bottleneck, scheduling chaos, \n"
+        "   inconsistent assessments, interviewer fatigue.\n"
+        "3. Proof: one concrete result — e.g. 'cut time-to-hire by 70%' or \n"
+        "   'screened 5,000 candidates in a week without adding headcount'.\n"
+        "4. Ask: low-friction CTA — 'Worth a look?' / 'Relevant to you?'\n\n"
+        #
+        "LINKEDIN MESSAGE: 2-3 sentences max. Same peer tone. No pitch deck compression.\n"
+        "WHATSAPP MESSAGE: 1-2 sentences. Ultra-brief. Curiosity-driven.\n\n"
+        #
+        "Return ONLY a JSON object with keys: pain_hypothesis, bandwidth_pressure, \n"
+        "buyer_persona, outreach_angle, cold_email, linkedin_message, whatsapp_message.\n\n"
+        #
         f"Company: {lead.get('company_name')}\n"
         f"Industry: {lead.get('industry')}\n"
         f"Region: {lead.get('region')}\n"
@@ -52,50 +84,61 @@ def _build_prompt(lead: dict) -> str:
 
 
 def _template_output(lead: dict) -> dict:
+    """Fallback templates following cold-email skill principles:
+    - Peer voice, not vendor voice
+    - 2-4 word lowercase subject line
+    - Observation → Problem → Proof → Ask (PAS)
+    - Under 75 words body, interest-based CTA
+    """
     company = lead.get("company_name", "the company")
     dm = lead.get("decision_maker_name") or "there"
     dm_title = lead.get("decision_maker_title") or "Talent leader"
     open_jobs = lead.get("total_open_jobs", 0)
     recruiter_jobs = lead.get("recruiter_jobs_open", 0)
-    region = lead.get("region") or "your region"
 
     pain = (
-        f"{company} appears to be scaling hiring with {open_jobs} open roles"
-        + (f" and {recruiter_jobs} recruiter/TA openings" if recruiter_jobs else "")
-        + ". At this volume, interview scheduling and candidate screening become major bottlenecks."
+        f"{company} has {open_jobs} open roles"
+        + (f" and is hiring {recruiter_jobs} recruiters" if recruiter_jobs else "")
+        + " — that's a lot of interviews competing for limited bandwidth."
     )
     bandwidth = (
-        f"With {open_jobs} open positions, {company}'s interview pipeline is likely strained. "
-        f"Each role requires multiple interview rounds — that's thousands of interviews "
-        f"competing for limited interviewer time."
+        f"Every role needs multiple interview rounds. At {open_jobs} openings, "
+        f"{company}'s interviewers are likely the bottleneck, not the pipeline."
     )
-    persona = f"Best buyer persona: {dm_title} or Head of Talent Acquisition at {company}."
+    persona = f"{dm_title} or Head of TA at {company} — owns the interview throughput problem."
     angle = (
-        f"Rachel AI can handle 1,000 interviews simultaneously, 24/7 — letting {company} "
-        f"screen candidates for all {open_jobs} roles without adding headcount."
+        f"Observation: {open_jobs} open roles = thousands of interviews/month. "
+        f"Problem: interviewer bandwidth caps hiring speed. "
+        f"Proof: Rachel AI screens 1,000 candidates simultaneously, 24/7. "
+        f"Ask: worth exploring?"
     )
+
+    # --- Cold email: PAS framework, peer voice, lowercase 2-4 word subject ---
     cold_email = (
-        f"Subject: {company} — automate interviews for {open_jobs} open roles\n\n"
+        f"Subject: interview bandwidth\n\n"
         f"Hi {dm},\n\n"
-        f"I noticed {company} is hiring across {open_jobs} roles"
-        + (f" in {region}" if region else "")
-        + ". At this scale, interview scheduling and screening become a real bottleneck.\n\n"
-        f"Rachel AI conducts technical and non-technical interviews autonomously — "
-        f"1,000 interviews at a time, 24/7. Companies using Rachel have cut time-to-hire by 70% "
-        f"and scaled hiring 10x without adding recruiters.\n\n"
-        f"Would a quick 15-min demo make sense this week?\n\n"
+        f"{company}'s got {open_jobs} roles open"
+        + (f" and you're hiring more recruiters" if recruiter_jobs else "")
+        + " — that usually means interviews are the bottleneck, not sourcing.\n\n"
+        f"One company in a similar spot started running interviews autonomously "
+        f"and cut time-to-hire by 70% without adding headcount.\n\n"
+        f"Relevant to you?\n\n"
         f"Best,\n[Your name]"
     )
+
+    # --- LinkedIn: 2-3 sentences, peer tone ---
     linkedin = (
-        f"Hi {dm}, saw {company} is hiring across {open_jobs} roles. "
-        f"Rachel AI automates interviews (technical + non-technical) — 1,000 at a time, 24/7. "
-        f"Companies using it have scaled hiring 10x. Worth a quick chat?"
+        f"Hi {dm} — {open_jobs} open roles at {company} means a lot of interviews. "
+        f"Curious if you've looked at running them autonomously? "
+        f"Happy to share what's working for similar teams."
     )
+
+    # --- WhatsApp: 1-2 sentences, ultra-brief ---
     whatsapp = (
-        f"Hi {dm}, noticed {company} is scaling hiring ({open_jobs} open roles). "
-        f"Rachel AI handles interviews 24/7 — 1,000 simultaneously. "
-        f"Could I share a 2-min overview?"
+        f"Hi {dm} — noticed {company} is hiring at scale. "
+        f"Quick question: is interview bandwidth a bottleneck for you right now?"
     )
+
     return {
         "pain_hypothesis": pain,
         "bandwidth_pressure": bandwidth,
@@ -105,6 +148,28 @@ def _template_output(lead: dict) -> dict:
         "linkedin_message": linkedin,
         "whatsapp_message": whatsapp,
     }
+
+
+def _stringify(value: object) -> str:
+    """Convert a value to a plain string for DB storage.
+
+    OpenAI may return structured objects (e.g. cold_email as
+    ``{"subject": "...", "body": "..."}``). Flatten them to text.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        if "subject" in value and "body" in value:
+            return f"Subject: {value['subject']}\n\n{value['body']}"
+        return "\n".join(f"{k}: {v}" for k, v in value.items())
+    if isinstance(value, list):
+        return "\n".join(str(v) for v in value)
+    return str(value)
+
+
+def _ensure_strings(result: dict) -> dict:
+    """Ensure every AI field value is a plain string."""
+    return {k: _stringify(v) for k, v in result.items()}
 
 
 def generate_outreach(lead: dict, api_key: str | None, base_url: str, model: str) -> dict:
@@ -131,7 +196,8 @@ def generate_outreach(lead: dict, api_key: str | None, base_url: str, model: str
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         data = json.loads(content)
-        return {field: data.get(field) or _template_output(lead)[field] for field in AI_FIELDS}
+        result = {field: data.get(field) or _template_output(lead)[field] for field in AI_FIELDS}
+        return _ensure_strings(result)
     except Exception as exc:  # noqa: BLE001 - graceful fallback for any AI failure
         logger.warning("AI generation failed (%s); falling back to template", exc)
         return _template_output(lead)
