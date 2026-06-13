@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     app_url: str = "http://localhost:3000"
     api_url: str = "http://localhost:8000"
 
+    # Product branding (used in outreach templates)
+    product_name: str = "RACHEL"
+    product_landing_url: str = "https://rachel.recruitment.ai"
+    product_description: str = "AI recruitment automation that fills roles faster without adding headcount"
+
     # Database / cache
     database_url: str = "postgresql://postgres:postgres@postgres:5432/recloud_leads"
     redis_url: str = "redis://redis:6379/0"

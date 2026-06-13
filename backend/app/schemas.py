@@ -123,6 +123,7 @@ class CompanyLeadDetail(CompanyLeadOut):
     ai_bandwidth_pressure: str | None = None
     ai_buyer_persona: str | None = None
     ai_outreach_angle: str | None = None
+    ai_case_study_used: str | None = None
     ai_cold_email: str | None = None
     ai_linkedin_message: str | None = None
     ai_whatsapp_message: str | None = None

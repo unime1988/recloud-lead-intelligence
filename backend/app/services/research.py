@@ -181,6 +181,7 @@ def run_research(run_id: int) -> None:
                 lead.ai_bandwidth_pressure = ai["bandwidth_pressure"]
                 lead.ai_buyer_persona = ai["buyer_persona"]
                 lead.ai_outreach_angle = ai["outreach_angle"]
+                lead.ai_case_study_used = ai.get("case_study_used")
                 lead.ai_cold_email = ai["cold_email"]
                 lead.ai_linkedin_message = ai["linkedin_message"]
                 lead.ai_whatsapp_message = ai["whatsapp_message"]

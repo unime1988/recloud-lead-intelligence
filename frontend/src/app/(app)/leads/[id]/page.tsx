@@ -263,6 +263,17 @@ export default function LeadDetailPage() {
             <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           </TabsList>
           <TabsContent value="insights" className="space-y-4">
+            {lead.ai_case_study_used && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-base">Matched case study</CardTitle>
+                  <Badge variant="secondary">Auto-selected</Badge>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm font-medium text-foreground">{lead.ai_case_study_used}</p>
+                </CardContent>
+              </Card>
+            )}
             <MessageBlock title="Pain hypothesis" value={lead.ai_pain_hypothesis} />
             <MessageBlock title="Recruiter bandwidth pressure" value={lead.ai_bandwidth_pressure} />
             <MessageBlock title="Best buyer persona" value={lead.ai_buyer_persona} />

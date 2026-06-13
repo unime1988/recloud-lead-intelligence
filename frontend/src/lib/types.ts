@@ -74,6 +74,7 @@ export interface LeadDetail extends Lead {
   ai_bandwidth_pressure: string | null;
   ai_buyer_persona: string | null;
   ai_outreach_angle: string | null;
+  ai_case_study_used: string | null;
   ai_cold_email: string | null;
   ai_linkedin_message: string | null;
   ai_whatsapp_message: string | null;

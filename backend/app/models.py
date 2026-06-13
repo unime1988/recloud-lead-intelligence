@@ -100,6 +100,7 @@ class CompanyLead(Base):
     ai_bandwidth_pressure: Mapped[str | None] = mapped_column(Text, nullable=True)
     ai_buyer_persona: Mapped[str | None] = mapped_column(Text, nullable=True)
     ai_outreach_angle: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_case_study_used: Mapped[str | None] = mapped_column(Text, nullable=True)
     ai_cold_email: Mapped[str | None] = mapped_column(Text, nullable=True)
     ai_linkedin_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     ai_whatsapp_message: Mapped[str | None] = mapped_column(Text, nullable=True)
