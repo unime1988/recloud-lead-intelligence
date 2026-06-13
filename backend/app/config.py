@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     # Product branding (used in outreach templates)
     product_name: str = "RACHEL"
-    product_landing_url: str = "https://rachel.recruitment.ai"
+    product_landing_url: str = "https://recloudconsulting.com/relcoud-agentic-engine.php"
     product_description: str = "AI recruitment automation that fills roles faster without adding headcount"
 
     # Database / cache
