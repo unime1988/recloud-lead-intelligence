@@ -11,8 +11,15 @@ import re
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from app.services import enrichment, jobspy_service
-from app.services.classify import URGENT_KEYWORDS, classify_title, matches_company_type_filter
+from app.services import enrichment, firecrawl_service, jobspy_service
+from app.services.classify import (
+    DEFAULT_HIGH_VOLUME_KEYWORDS,
+    DEFAULT_RECRUITER_KEYWORDS,
+    DEFAULT_TA_COORDINATOR_KEYWORDS,
+    URGENT_KEYWORDS,
+    classify_title,
+    matches_company_type_filter,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +83,7 @@ def _scrape_jobs_for_campaign(campaign, eff: dict) -> list[dict]:
     search_terms = _build_search_terms(campaign)
     location = campaign.region or ""
     country = eff.get("jobspy_country", "india")
-    results_wanted = int(eff.get("jobspy_results_limit", 100))
+    results_wanted = int(eff.get("jobspy_results_limit", 300))
     proxies_raw = eff.get("jobspy_proxies", "")
     proxies = [p.strip() for p in proxies_raw.split(",") if p.strip()] if proxies_raw else None
 
@@ -107,22 +114,30 @@ _AGENCY_SEARCH_TERMS: dict[str, list[str]] = {
         "recruitment agency hiring",
         "staffing company jobs",
         "placement agency",
+        "recruiter walk in interview",
+        "staffing urgent hiring",
+        "recruitment consultant jobs",
     ],
     "consulting": [
         "IT consulting company hiring",
         "consulting firm jobs",
         "technology services hiring",
+        "IT services urgent hiring",
+        "consulting bulk hiring",
     ],
     "sourcing": [
         "sourcing agency hiring",
         "executive search firm",
         "talent sourcing jobs",
+        "headhunting firm hiring",
     ],
     "recruitment_and_consulting": [
         "recruitment agency hiring",
         "staffing company jobs",
         "IT consulting company hiring",
         "consulting firm jobs",
+        "recruiter walk in interview",
+        "staffing urgent hiring",
     ],
 }
 
@@ -196,13 +211,30 @@ def _compute_signals(
         if flags["is_high_volume_role"]:
             high_vol_count += 1
 
+        # Parse description for additional signals.
+        desc = (j.get("description") or "").lower()
+
         # Urgent: check title + description.
         is_urgent = flags["is_urgent"]
         if not is_urgent:
-            desc = (j.get("description") or "").lower()
             is_urgent = any(kw.lower() in desc for kw in URGENT_KEYWORDS)
         if is_urgent:
             urgent_any = True
+
+        # Recruiter: also detect from description keywords (e.g. "hiring for recruiter" in body).
+        if not flags["is_recruiter_role"] and not flags["is_ta_coordinator"]:
+            if any(kw.lower() in desc for kw in DEFAULT_RECRUITER_KEYWORDS):
+                recruiter_count += 1
+
+        # TA coordinator: also detect from description keywords.
+        if not flags["is_ta_coordinator"]:
+            if any(kw.lower() in desc for kw in DEFAULT_TA_COORDINATOR_KEYWORDS):
+                ta_coord_count += 1
+
+        # High-volume roles: also detect from description keywords.
+        if not flags["is_high_volume_role"]:
+            if any(kw.lower() in desc for kw in DEFAULT_HIGH_VOLUME_KEYWORDS):
+                high_vol_count += 1
 
         loc = (j.get("location") or "").strip()
         if loc:
@@ -319,3 +351,57 @@ def _enrich_decision_makers(companies: list[dict], campaign, eff: dict) -> None:
                 comp["decision_maker"] = dm
         except Exception as exc:  # noqa: BLE001
             logger.warning("Enrichment failed for %s: %s", comp["company_name"], exc)
+
+    # Firecrawl career-page enrichment: scrape career pages for extra signals.
+    _enrich_from_career_pages(companies, eff)
+
+
+# ---------------------------------------------------------------------------
+# Firecrawl career-page enrichment
+# ---------------------------------------------------------------------------
+
+def _enrich_from_career_pages(companies: list[dict], eff: dict) -> None:
+    """Scrape career pages via Firecrawl to discover additional hiring signals.
+
+    This supplements JobSpy data with extra roles found on career pages,
+    boosting signal accuracy for urgent/stale/high-volume/TA-coordinator
+    detection.
+    """
+    fc_key = eff.get("firecrawl_api_key", "")
+    fc_base = eff.get("firecrawl_base_url", "https://api.firecrawl.dev")
+    if not firecrawl_service.is_configured(fc_key):
+        logger.info("Firecrawl not configured; skipping career-page enrichment.")
+        return
+
+    for comp in companies[:10]:  # Rate-limit: max 10 career page scrapes per campaign.
+        careers_url = comp.get("careers_url", "")
+        if not careers_url or "linkedin.com" in careers_url or "indeed.com" in careers_url:
+            continue
+        try:
+            md = firecrawl_service.scrape_careers_page(careers_url, fc_key, fc_base)
+            if not md:
+                continue
+            md_lower = md.lower()
+
+            # Extract additional signals from career page text.
+            extra_recruiter = sum(1 for kw in DEFAULT_RECRUITER_KEYWORDS if kw in md_lower)
+            extra_ta_coord = sum(1 for kw in DEFAULT_TA_COORDINATOR_KEYWORDS if kw in md_lower)
+            extra_high_vol = sum(1 for kw in DEFAULT_HIGH_VOLUME_KEYWORDS if kw in md_lower)
+            extra_urgent = any(kw.lower() in md_lower for kw in URGENT_KEYWORDS)
+
+            # Boost existing signal counts with career-page findings.
+            if extra_recruiter > 0:
+                comp["recruiter_jobs_open"] = max(comp["recruiter_jobs_open"], extra_recruiter)
+            if extra_ta_coord > 0:
+                comp["ta_coordinator_jobs"] = max(comp["ta_coordinator_jobs"], extra_ta_coord)
+            if extra_high_vol > 0:
+                comp["high_volume_role_jobs"] = max(comp["high_volume_role_jobs"], extra_high_vol)
+            if extra_urgent:
+                comp["has_urgent_hiring"] = True
+
+            logger.info(
+                "Firecrawl enriched %s: +%d recruiter, +%d TA, +%d high-vol, urgent=%s",
+                comp["company_name"], extra_recruiter, extra_ta_coord, extra_high_vol, extra_urgent,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Firecrawl enrichment failed for %s: %s", comp["company_name"], exc)
