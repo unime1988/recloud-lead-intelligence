@@ -23,13 +23,88 @@ AI_FIELDS = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Rachel AI case studies — matched to lead size/type
+# ---------------------------------------------------------------------------
+
+_CASE_STUDIES = {
+    "bpo_large": (
+        "A Tier-1 BPO with 500+ open support roles was drowning in 6-day shortlist "
+        "cycles. After deploying RACHEL, they delivered decision-ready shortlists in "
+        "24 hours — same team, same budget. CQV visibility changed how they run hiring."
+    ),
+    "it_services": (
+        "A global IT services firm spent 28 hrs/week on recruiter admin for engineering "
+        "roles. RACHEL compressed their first-round cycle from days to hours — now at "
+        "8 hrs/week, protecting senior engineering panel time."
+    ),
+    "staffing_agency": (
+        "A mid-size staffing agency handling 200+ roles/month couldn't scale interviews "
+        "fast enough. RACHEL now screens and interviews autonomously — they scaled 3x "
+        "placements without hiring a single additional recruiter."
+    ),
+    "startup_growing": (
+        "A fast-growing startup had 40 open roles and only 2 recruiters. Scheduling alone "
+        "ate half their week. RACHEL's self-serve scheduling + AI first-rounds freed them "
+        "up — they filled seats 70% faster without adding headcount."
+    ),
+    "enterprise_gcc": (
+        "A Global Capability Center hiring across 4 countries needed consistent first-round "
+        "rigor. RACHEL standardized structured interviews across time zones — delivering "
+        "predictable shortlists and cutting cost-per-qualified-CV by 55%."
+    ),
+}
+
+RACHEL_LINK = "https://recloudconsulting.com/relcoud-agentic-engine.php"
+
+
+def _pick_case_study(lead: dict) -> str:
+    """Select the most relevant case study based on lead characteristics."""
+    company = (lead.get("company_name") or "").lower()
+    industry = (lead.get("industry") or "").lower()
+    open_jobs = lead.get("total_open_jobs", 0)
+
+    # Staffing/recruitment agency
+    if any(kw in company for kw in ("staffing", "recruitment", "manpower", "placement", "consulting", "agency")):
+        return _CASE_STUDIES["staffing_agency"]
+    if "recruitment" in industry or "staffing" in industry:
+        return _CASE_STUDIES["staffing_agency"]
+
+    # BPO / large volume
+    if any(kw in company for kw in ("bpo", "ites", "outsourc", "call center")):
+        return _CASE_STUDIES["bpo_large"]
+    if open_jobs >= 50:
+        return _CASE_STUDIES["bpo_large"]
+
+    # IT services
+    if any(kw in company for kw in ("tech", "software", "it service", "infosys", "wipro", "tcs")):
+        return _CASE_STUDIES["it_services"]
+
+    # Enterprise / GCC
+    if open_jobs >= 20:
+        return _CASE_STUDIES["enterprise_gcc"]
+
+    # Default: startup/growing company
+    return _CASE_STUDIES["startup_growing"]
+
+
 def _build_prompt(lead: dict) -> str:
     signals = ", ".join(s.get("label", "") for s in lead.get("signals", [])) or "general hiring activity"
+    case_study = _pick_case_study(lead)
     return (
-        "You are an expert cold email writer for Rachel AI — an AI-powered interview "
-        "platform that conducts technical and non-technical interviews autonomously. "
-        "Rachel AI processes 1,000 interviews simultaneously, works 24/7/365, and "
-        "helps companies scale hiring 10x without adding recruiters.\n\n"
+        "You are writing cold outreach for RACHEL — an autonomous hiring engine by ReCloud. "
+        "RACHEL screens CVs, runs structured AI first-round interviews (technical + non-technical), "
+        "schedules candidates via self-serve calendars, and delivers decision-ready shortlists in 24 hours. "
+        "It processes 1,00,000+ resumes, executes 8,000+ interviews, and has enabled 2,500+ offers. "
+        "Key results: up to 55% lower cost-per-qualified-CV, 70% less recruiter effort, 24-hour shortlists.\n\n"
+        #
+        f"RACHEL LINK (include in email): {RACHEL_LINK}\n\n"
+        #
+        f"CASE STUDY — YOU MUST INCLUDE THIS AS A SEPARATE PARAGRAPH IN THE EMAIL:\n"
+        f"{case_study}\n"
+        f"Include the specific numbers from this case study (e.g. '6-day → 24 hours', "
+        f"'28 hrs/week → 8 hrs/week', '3x placements', '70% faster', '55% lower cost'). "
+        f"Do NOT paraphrase vaguely — quote the exact metrics.\n\n"
         #
         # --- Cold-email skill methodology ---
         #
@@ -37,33 +112,37 @@ def _build_prompt(lead: dict) -> str:
         "- Write like a peer, not a vendor. Use contractions. If it sounds like \n"
         "  marketing copy, rewrite it. No jargon: no 'synergy', 'leverage', \n"
         "  'circle back', 'best-in-class', 'leading provider'.\n"
-        "- Every sentence must earn its place. Under 75 words for the email body.\n"
+        "- Keep total body under 120 words — the case study paragraph needs room.\n"
         "- Lead with THEIR world, not yours. 'You/your' dominates over 'I/we'.\n"
         "- Do NOT open with 'I hope this email finds you well', 'My name is X', \n"
         "  or 'I came across your profile'. Never use 'leverage' or 'synergy'.\n"
-        "- One ask, low friction. Use interest-based CTAs like 'Worth exploring?' \n"
-        "  or 'Would this be useful?' — NOT 'Book a 30-min call'.\n"
+        "- Mention RACHEL by name naturally (not in subject line).\n"
         "- Personalization must connect to the problem. The observation about their \n"
-        "  hiring signals should naturally lead into why Rachel AI matters to them.\n\n"
+        "  hiring signals should naturally lead into why RACHEL matters to them.\n\n"
         #
         "SUBJECT LINE RULES:\n"
         "- 2-4 words, all lowercase, no punctuation tricks, no emojis.\n"
         "- Should look like it came from a colleague, not a vendor.\n"
-        "- No product name, no 'increase/boost/ROI', no prospect first name.\n"
-        "- Examples of good subject lines: 'interview bandwidth', 'hiring bottleneck', \n"
-        "  'screening capacity', 'candidate pipeline'.\n\n"
+        "- No product name in subject, no 'increase/boost/ROI', no prospect first name.\n"
+        "- Examples: 'interview bandwidth', 'hiring bottleneck', 'screening capacity'.\n\n"
         #
-        "FRAMEWORK — use Observation → Problem → Proof → Ask (PAS variant):\n"
-        "1. Observation: reference a specific hiring signal (e.g. their open roles, \n"
-        "   recruiter postings, urgent hiring) connected to the interview problem.\n"
-        "2. Problem: what this usually means — interview bottleneck, scheduling chaos, \n"
-        "   inconsistent assessments, interviewer fatigue.\n"
-        "3. Proof: one concrete result — e.g. 'cut time-to-hire by 70%' or \n"
-        "   'screened 5,000 candidates in a week without adding headcount'.\n"
-        "4. Ask: low-friction CTA — 'Worth a look?' / 'Relevant to you?'\n\n"
+        "FRAMEWORK — use Observation → Problem → Case Study → Ask:\n"
+        "1. Observation: reference a specific hiring signal connected to interview pain.\n"
+        "2. Problem: what this usually means — bottleneck, scheduling chaos, inconsistency.\n"
+        "3. Case Study (SEPARATE PARAGRAPH): Start with a phrase like 'Here's what happened:' \n"
+        "   or 'A similar team tried this:' and then include the EXACT case study text above \n"
+        "   with its specific numbers. This paragraph MUST contain at least 2 metrics.\n"
+        "4. Two CTAs:\n"
+        "   a) Reply CTA: 'Just reply \"interested\" and I\'ll send details' or \n"
+        "      'Reply \"hi\" and I\'ll share how' — keep it one word reply.\n"
+        f"   b) Link CTA: 'Or see how it works: {RACHEL_LINK}' — natural, not pushy.\n\n"
         #
-        "LINKEDIN MESSAGE: 2-3 sentences max. Same peer tone. No pitch deck compression.\n"
-        "WHATSAPP MESSAGE: 1-2 sentences. Ultra-brief. Curiosity-driven.\n\n"
+        "COLD EMAIL FORMAT (subject_line: ... then body: ...):\n"
+        "- Include BOTH CTAs at the end — the reply-based one first, then the link.\n"
+        "- Sign off casually: just a first name, no title.\n\n"
+        #
+        "LINKEDIN MESSAGE: 2-3 sentences max. Same peer tone. Include RACHEL link.\n"
+        "WHATSAPP MESSAGE: 1-2 sentences. Ultra-brief. Curiosity-driven. Include link.\n\n"
         #
         "Return ONLY a JSON object with keys: pain_hypothesis, bandwidth_pressure, \n"
         "buyer_persona, outreach_angle, cold_email, linkedin_message, whatsapp_message.\n\n"
@@ -84,59 +163,68 @@ def _build_prompt(lead: dict) -> str:
 
 
 def _template_output(lead: dict) -> dict:
-    """Fallback templates following cold-email skill principles:
+    """Fallback templates following cold-email skill + Rachel AI specifics:
     - Peer voice, not vendor voice
     - 2-4 word lowercase subject line
     - Observation → Problem → Proof → Ask (PAS)
-    - Under 75 words body, interest-based CTA
+    - Under 90 words body, dual CTAs (reply + link)
+    - RACHEL mentioned by name with case study proof
     """
     company = lead.get("company_name", "the company")
     dm = lead.get("decision_maker_name") or "there"
     dm_title = lead.get("decision_maker_title") or "Talent leader"
     open_jobs = lead.get("total_open_jobs", 0)
     recruiter_jobs = lead.get("recruiter_jobs_open", 0)
+    case_study = _pick_case_study(lead)
 
     pain = (
         f"{company} has {open_jobs} open roles"
         + (f" and is hiring {recruiter_jobs} recruiters" if recruiter_jobs else "")
-        + " — that's a lot of interviews competing for limited bandwidth."
+        + " — that's a lot of interviews competing for limited bandwidth. "
+        "At this volume, first-round screening and scheduling alone can consume "
+        "the entire TA team's week."
     )
     bandwidth = (
         f"Every role needs multiple interview rounds. At {open_jobs} openings, "
-        f"{company}'s interviewers are likely the bottleneck, not the pipeline."
+        f"{company}'s interviewers are likely the bottleneck, not the pipeline. "
+        f"RACHEL automates the entire first-round — screening, scheduling, and "
+        f"structured interviews — delivering shortlists in 24 hours."
     )
     persona = f"{dm_title} or Head of TA at {company} — owns the interview throughput problem."
     angle = (
-        f"Observation: {open_jobs} open roles = thousands of interviews/month. "
-        f"Problem: interviewer bandwidth caps hiring speed. "
-        f"Proof: Rachel AI screens 1,000 candidates simultaneously, 24/7. "
-        f"Ask: worth exploring?"
+        f"Observation: {open_jobs} open roles = heavy interview load. "
+        f"Problem: manual screening + scheduling = bottleneck. "
+        f"Proof: {case_study[:80]}... "
+        f"Ask: dual CTA — reply 'interested' or visit RACHEL link."
     )
 
-    # --- Cold email: PAS framework, peer voice, lowercase 2-4 word subject ---
+    # --- Cold email: PAS framework, peer voice, RACHEL by name, case study, dual CTAs ---
     cold_email = (
-        f"Subject: interview bandwidth\n\n"
-        f"Hi {dm},\n\n"
+        f"subject_line: interview bandwidth\n\n"
+        f"body: Hi {dm},\n\n"
         f"{company}'s got {open_jobs} roles open"
         + (f" and you're hiring more recruiters" if recruiter_jobs else "")
         + " — that usually means interviews are the bottleneck, not sourcing.\n\n"
-        f"One company in a similar spot started running interviews autonomously "
-        f"and cut time-to-hire by 70% without adding headcount.\n\n"
-        f"Relevant to you?\n\n"
-        f"Best,\n[Your name]"
+        f"Here's what happened with a similar team: {case_study}\n\n"
+        f"The engine behind it is RACHEL — it runs structured first-round interviews "
+        f"autonomously and delivers decision-ready shortlists in 24 hours.\n\n"
+        f"If that sounds relevant, just reply \"interested\" and I'll share how it'd "
+        f"work for {company}.\n\n"
+        f"Or take a quick look here: {RACHEL_LINK}\n\n"
+        f"Cheers"
     )
 
-    # --- LinkedIn: 2-3 sentences, peer tone ---
+    # --- LinkedIn: 2-3 sentences, peer tone, include link ---
     linkedin = (
-        f"Hi {dm} — {open_jobs} open roles at {company} means a lot of interviews. "
-        f"Curious if you've looked at running them autonomously? "
-        f"Happy to share what's working for similar teams."
+        f"Hi {dm} — {open_jobs} open roles at {company} means a heavy interview load. "
+        f"RACHEL runs structured first-rounds autonomously and delivers shortlists in 24 hrs. "
+        f"Worth a look? {RACHEL_LINK}"
     )
 
-    # --- WhatsApp: 1-2 sentences, ultra-brief ---
+    # --- WhatsApp: 1-2 sentences, ultra-brief, curiosity + link ---
     whatsapp = (
-        f"Hi {dm} — noticed {company} is hiring at scale. "
-        f"Quick question: is interview bandwidth a bottleneck for you right now?"
+        f"Hi {dm} — {company} is hiring at scale. What if first-round interviews "
+        f"ran on autopilot? Quick look: {RACHEL_LINK}"
     )
 
     return {

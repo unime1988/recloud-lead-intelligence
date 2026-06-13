@@ -16,6 +16,14 @@ DEFAULT_TA_COORDINATOR_KEYWORDS = [
     "recruiting operations",
     "talent operations",
     "people ops",
+    "interview coordinator",
+    "interview scheduler",
+    "interview scheduling",
+    "assessment coordinator",
+    "hiring coordinator",
+    "onboarding coordinator",
+    "screening coordinator",
+    "talent coordinator",
 ]
 DEFAULT_HIGH_VOLUME_KEYWORDS = [
     "sales",
@@ -28,6 +36,19 @@ DEFAULT_HIGH_VOLUME_KEYWORDS = [
     "field",
     "delivery",
     "warehouse",
+    "bulk hiring",
+    "mass recruitment",
+    "campus",
+    "fresher",
+    "trainee",
+    "intern",
+    "associate",
+    "executive",
+    "customer service",
+    "back office",
+    "data entry",
+    "tele",
+    "collections",
 ]
 URGENT_KEYWORDS = [
     "urgent",
@@ -39,6 +60,16 @@ URGENT_KEYWORDS = [
     "walk in",
     "quick joiner",
     "immediate joiner",
+    "urgently hiring",
+    "urgent requirement",
+    "urgent opening",
+    "immediate start",
+    "spot offer",
+    "walk in interview",
+    "walkin",
+    "openings available immediately",
+    "fast hiring",
+    "need immediately",
 ]
 
 # ---------------------------------------------------------------------------
