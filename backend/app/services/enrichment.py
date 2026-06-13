@@ -63,27 +63,36 @@ def find_decision_maker(
 ) -> dict | None:
     """Return ``{name, title, email}`` or ``None``.
 
-    Prefers Hunter (returns emails directly), falls back to Apollo
-    (search + enrichment). Both gracefully return None on failure.
+    Queries both Hunter and Apollo (when configured) and returns the
+    first result that includes an email. This maximises coverage:
+    Hunter resolves by company name even without a real domain, while
+    Apollo searches by domain or company name.
     """
-    dm = None
     # A job-board host (indeed.com, linkedin.com, ...) is not the company's real
     # domain, so don't use it for a domain lookup.
     usable_domain = domain if (domain and not _is_job_board(domain)) else ""
 
-    # Hunter first — domain-search returns emails directly, and also accepts a
+    # Try Hunter — domain-search returns emails directly, and also accepts a
     # company name (which it resolves to the real domain) when we lack one.
+    hunter_result = None
     if _clean(hunter_key) and (usable_domain or company_name):
-        dm = _hunter_domain_search(usable_domain, company_name, titles, hunter_key)  # type: ignore[arg-type]
-        if dm:
-            return dm
+        hunter_result = _hunter_domain_search(usable_domain, company_name, titles, hunter_key)  # type: ignore[arg-type]
 
-    if _clean(apollo_key) and usable_domain:
-        dm = _apollo_search(usable_domain, titles, apollo_key)  # type: ignore[arg-type]
-        if dm:
-            return dm
+    # Try Apollo — people search by domain or company name.
+    apollo_result = None
+    if _clean(apollo_key) and (usable_domain or company_name):
+        apollo_result = _apollo_search(usable_domain, company_name, titles, apollo_key)  # type: ignore[arg-type]
 
-    return None
+    # Prefer whichever result has an email; if both do, prefer the one
+    # with a better title match (has a title set).
+    candidates = [r for r in (hunter_result, apollo_result) if r and r.get("email")]
+    if not candidates:
+        # Return any result even without email
+        return hunter_result or apollo_result or None
+
+    # Prefer the candidate that has both a name and a title
+    candidates.sort(key=lambda r: (bool(r.get("title")), bool(r.get("name"))), reverse=True)
+    return candidates[0]
 
 
 # ---------------------------------------------------------------------------
@@ -169,21 +178,31 @@ def _pick_best_match(emails: list[dict], titles: list[str]) -> dict | None:
 # Apollo.io
 # ---------------------------------------------------------------------------
 
-def _apollo_search(domain: str, titles: list[str], api_key: str) -> dict | None:
-    """Apollo People Search + People Match to reveal email."""
+def _apollo_search(
+    domain: str, company_name: str, titles: list[str], api_key: str
+) -> dict | None:
+    """Apollo People Search + People Match to reveal email.
+
+    Searches by domain when available, otherwise by company name.
+    """
     try:
         headers = {
             "Content-Type": "application/json",
             "Cache-Control": "no-cache",
             "X-Api-Key": api_key,
         }
-        # Step 1: Search for people at this domain with matching titles.
+        # Step 1: Search for people at this domain/company with matching titles.
         search_url = "https://api.apollo.io/api/v1/mixed_people/api_search"
         params: dict = {"per_page": 5}
         if titles:
             for i, t in enumerate(titles[:5]):
                 params[f"person_titles[{i}]"] = t
-        params["q_organization_domains_list[0]"] = domain
+        if domain:
+            params["q_organization_domains_list[0]"] = domain
+        elif company_name:
+            params["q_organization_name"] = company_name
+        else:
+            return None
 
         resp = httpx.post(search_url, headers=headers, params=params, timeout=_TIMEOUT)
         resp.raise_for_status()
@@ -205,7 +224,7 @@ def _apollo_search(domain: str, titles: list[str], api_key: str) -> dict | None:
 
         return {"name": name, "title": title, "email": email}
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Apollo search failed for %s: %s", domain, exc)
+        logger.warning("Apollo search failed for %s: %s", domain or company_name, exc)
         return None
 
 
