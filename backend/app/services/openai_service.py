@@ -150,6 +150,28 @@ def _template_output(lead: dict) -> dict:
     }
 
 
+def _stringify(value: object) -> str:
+    """Convert a value to a plain string for DB storage.
+
+    OpenAI may return structured objects (e.g. cold_email as
+    ``{"subject": "...", "body": "..."}``). Flatten them to text.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        if "subject" in value and "body" in value:
+            return f"Subject: {value['subject']}\n\n{value['body']}"
+        return "\n".join(f"{k}: {v}" for k, v in value.items())
+    if isinstance(value, list):
+        return "\n".join(str(v) for v in value)
+    return str(value)
+
+
+def _ensure_strings(result: dict) -> dict:
+    """Ensure every AI field value is a plain string."""
+    return {k: _stringify(v) for k, v in result.items()}
+
+
 def generate_outreach(lead: dict, api_key: str | None, base_url: str, model: str) -> dict:
     """Generate AI outreach drafts. Returns dict with AI_FIELDS keys."""
     if not api_key:
@@ -174,7 +196,8 @@ def generate_outreach(lead: dict, api_key: str | None, base_url: str, model: str
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         data = json.loads(content)
-        return {field: data.get(field) or _template_output(lead)[field] for field in AI_FIELDS}
+        result = {field: data.get(field) or _template_output(lead)[field] for field in AI_FIELDS}
+        return _ensure_strings(result)
     except Exception as exc:  # noqa: BLE001 - graceful fallback for any AI failure
         logger.warning("AI generation failed (%s); falling back to template", exc)
         return _template_output(lead)
